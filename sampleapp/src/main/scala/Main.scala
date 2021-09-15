@@ -3,25 +3,35 @@ import scalikejdbc.{NamedDB, ConnectionPool, _}
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 
-@main def main: Unit =
-  // TODO: scalikejdbc.config.DBs.setupAll() does not work
-  Class.forName("com.mysql.jdbc.Driver")
-  ConnectionPool.add(Symbol("demo"), "jdbc:mysql://localhost:3306/demo", "root", "")
-  NamedDB(Symbol("demo")) localTx { implicit session =>
-    prepareEnv()
-    val fetchedMember = MemberDAO.selectBy("Alice")
-    println(Json.toJson(fetchedMember))
-    val fetchedMembers = MemberDAO.selectAll()
-    println(Json.toJson(MemberListRespoonse(fetchedMembers)))
-  }
-  deleteEnv()
-
-def prepareEnv()(using session: DBSession): Unit =
-  MemberDAO.createTable()
-  List("Alice", "David", "Taro").foreach(MemberDAO.createBy)
-
-def deleteEnv(): Unit =
-  NamedDB(Symbol("demo")) localTx { implicit _ => MemberDAO.dropTable() }
+object sampleApp:
+  def main(args: Array[String]): Unit =
+    // TODO: scalikejdbc.config.DBs.setupAll() does not work
+    Class.forName("com.mysql.jdbc.Driver")
+    ConnectionPool.add(Symbol("demo"), "jdbc:mysql://localhost:3306/demo", "root", "")
+    println("What do you want to do?(create database, register, search, update, drop database")
+    NamedDB(Symbol("demo")) localTx { implicit session =>
+      scala.io.StdIn.readLine() match {
+        case "create database" => MemberDAO.createTable()
+        case "register" =>
+          println("What does he call?")
+          MemberDAO.createBy(scala.io.StdIn.readLine())
+        case "search" =>
+          println("Who you want to search? please input name")
+          val fetchedMember = MemberDAO.selectBy(scala.io.StdIn.readLine())
+          println(Json.toJson(fetchedMember))
+        case "update" =>
+          println("Which user you want to update? please input id")
+          val fetchedMember = MemberDAO.selectBy(scala.io.StdIn.readInt())
+          fetchedMember match {
+            case Some(value) =>
+              println("How do you want to call?")
+              MemberDAO.update(value.id)(scala.io.StdIn.readLine())
+            case None => println("The user does not exist.")
+          }
+        case "drop database" => MemberDAO.dropTable()
+        case _ => println("The operation does not supported.")
+      }
+    }
 
 case class MemberListRespoonse(data: List[MemberDTO])
 
@@ -52,6 +62,13 @@ object MemberDAO {
     sql"select * from members"
       .map(MemberDTO.*).list.apply()
 
+  def selectBy(id: Int)(implicit session: DBSession): Option[MemberDTO] =
+    sql"""
+         select * from members
+         where
+           id = ${id}
+   """.map(MemberDTO.*).single.apply()
+
   def selectBy(name: String)(implicit session: DBSession): Option[MemberDTO] =
     sql"""
          select * from members
@@ -59,6 +76,11 @@ object MemberDAO {
            name = ${name}
          limit 1
    """.map(MemberDTO.*).single.apply()
+
+  def update(id: Long)(name: String)(implicit session: DBSession): Unit =
+    sql"""
+         update members set name = ${name} where id = ${id}
+   """.execute.apply()
 
   def createTable()(implicit session: DBSession): Unit =
     sql"""

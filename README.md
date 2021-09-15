@@ -35,12 +35,21 @@ $ git clone
 ```
  
 ## run
+
+you can do
+
+- create member database
+- drop member database
+- register member
+- search member
+- update member data
+
+
 ```shell
 $ cd {to under this project}
 $ pwd
 > xxxx/sampleapp
 $ sbt run
-> {"data":[{"id":1,"name":"Alice","createdAt":"2021-09-15 16:24:41.0"},{"id":2,"name":"David","createdAt":"2021-09-15 16:24:41.0"},{"id":3,"name":"Taro","createdAt":"2021-09-15 16:24:41.0"}]}
 ```
 
 # dependencies
