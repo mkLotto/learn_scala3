@@ -8,10 +8,10 @@ object sampleApp:
     // TODO: scalikejdbc.config.DBs.setupAll() does not work
     Class.forName("com.mysql.jdbc.Driver")
     ConnectionPool.add(Symbol("demo"), "jdbc:mysql://localhost:3306/demo", "root", "")
-    println("What do you want to do?(create database, register, search, update, drop database")
+    println("What do you want to do?(create table, register, search, update, drop table")
     NamedDB(Symbol("demo")) localTx { implicit session =>
       scala.io.StdIn.readLine() match {
-        case "create database" => MemberDAO.createTable()
+        case "create table" => MemberDAO.createTable()
         case "register" =>
           println("What does he call?")
           MemberDAO.createBy(scala.io.StdIn.readLine())
@@ -28,16 +28,10 @@ object sampleApp:
               MemberDAO.update(value.id)(scala.io.StdIn.readLine())
             case None => println("The user does not exist.")
           }
-        case "drop database" => MemberDAO.dropTable()
+        case "drop table" => MemberDAO.dropTable()
         case _ => println("The operation does not supported.")
       }
     }
-
-case class MemberListRespoonse(data: List[MemberDTO])
-
-object MemberListRespoonse {
-  implicit val writes: Writes[MemberListRespoonse] = Json.writes[MemberListRespoonse]
-}
 
 case class MemberDTO(id: Long, name: String, createdAt: String)
 
@@ -58,18 +52,18 @@ object MemberDTO extends SQLSyntaxSupport[MemberDTO]  {
 object MemberDAO {
   import MemberDTO.*
 
-  def selectAll()(implicit session: DBSession): List[MemberDTO] =
+  def selectAll()(using session: DBSession): List[MemberDTO] =
     sql"select * from members"
       .map(MemberDTO.*).list.apply()
 
-  def selectBy(id: Int)(implicit session: DBSession): Option[MemberDTO] =
+  def selectBy(id: Int)(using session: DBSession): Option[MemberDTO] =
     sql"""
          select * from members
          where
            id = ${id}
    """.map(MemberDTO.*).single.apply()
 
-  def selectBy(name: String)(implicit session: DBSession): Option[MemberDTO] =
+  def selectBy(name: String)(using session: DBSession): Option[MemberDTO] =
     sql"""
          select * from members
          where
@@ -77,12 +71,12 @@ object MemberDAO {
          limit 1
    """.map(MemberDTO.*).single.apply()
 
-  def update(id: Long)(name: String)(implicit session: DBSession): Unit =
+  def update(id: Long)(name: String)(using session: DBSession): Unit =
     sql"""
          update members set name = ${name} where id = ${id}
    """.execute.apply()
 
-  def createTable()(implicit session: DBSession): Unit =
+  def createTable()(using session: DBSession): Unit =
     sql"""
           create table members (
             id serial not null primary key,
@@ -90,7 +84,7 @@ object MemberDAO {
             created_at timestamp not null
     )""".execute.apply()
 
-  def createBy(name: String)(implicit session: DBSession): Unit =
+  def createBy(name: String)(using session: DBSession): Unit =
     sql"""
          insert into members (
             name,
@@ -100,7 +94,7 @@ object MemberDAO {
             current_timestamp)
          """.update.apply()
 
-  def dropTable()(implicit session: DBSession): Unit =
+  def dropTable()(using session: DBSession): Unit =
       sql"""drop table members""".execute.apply()
 }
 
